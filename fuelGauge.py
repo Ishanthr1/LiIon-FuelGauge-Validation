@@ -54,5 +54,8 @@ class MAX17262H:
         return self.read_register(_REG_REP_SOC) / 256.0
     def vfstatus(self):
         return self.read_register(_REG_FSTAT)
+    def read_temperature_c(self):
+        raw_temp = self.read_register(_REG_INT_TEMP)
+        return (raw_temp * 0.1) - 273.15
     
 

@@ -10,13 +10,15 @@ import board
 import busio
 
 from fuelGauge import MAX17262H
+from charger import MP2731
 
-cvsheader = ['timestamp', 'voltage_mv', 'current_ma', 'average_current_ma', 'remaining_capacity_mah', 'full_capacity_mah', 'state_of_charge', 'vfsoc', 'vfstatus']
+
+cvsheader = ['Timestamp', 'Voltage_mV', 'Current_mA', 'AverageCurrent_mA', 'Temperature_C', 'stateOfCharge_percent', 'VFSOC_percent', 'FullChargeCapacity_mAh', 'RemainingCapacity_mAh','Status', 'FStat']
 
 
-def smaple(fg):
+def smaple(fg,ch):
     now = datetime.now(timezone.utc)
-    return [now.isoformat(timespec='seconds'), fg.voltage_mv(), fg.current_ma(), fg.average_current_ma(), fg.remaining_capacity_mah(), fg.full_capacity_mah(), fg.state_of_charge(), fg.vfsoc(), fg.vfstatus()]
+    return [now.isoformat(timespec='seconds'), fg.voltage_mv(), fg.current_ma(), fg.average_current_ma(), fg.read_temperature_c(), fg.state_of_charge() * 100, fg.vfsoc() * 100, fg.full_capacity_mah(), fg.remaining_capacity_mah(),ch.charge_status(), fg.vfstatus()]
 
 _running = True
 def _stop(signum, frame):
@@ -37,7 +39,7 @@ def main():
     # Initialize I2C bus and fuel gauge
     i2c = busio.I2C(board.SCL, board.SDA)
     fg = MAX17262H(i2c)
-
+    ch = MP2731(i2c)
     # Open CSV file for writing
     with open(args.output, mode='w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -48,7 +50,7 @@ def main():
         try:
             next_t = time.monotonic()
             while _running:
-                data = smaple(fg)
+                data = smaple(fg,ch)
                 writer.writerow(data)
                 csvfile.flush()  # Ensure data is written to disk
                 os.fsync(csvfile.fileno())  # Force write to disk
